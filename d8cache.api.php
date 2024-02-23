@@ -12,7 +12,7 @@
  *   The tags to emit to the reverse proxy.
  */
 function hook_emit_cache_tags($tags) {
-  drupal_add_http_header('Surrogate-Key', implode(' ', $tags));
+  backdrop_add_http_header('Surrogate-Key', implode(' ', $tags));
 }
 
 /**
@@ -34,7 +34,7 @@ function hook_pre_emit_cache_tags_alter(&$tags) {
  *   The maximum age to set or CACHE_MAX_AGE_PERMANENT.
  */
 function hook_emit_cache_max_age($max_age) {
-  $page_cache_maximum_age = variable_get('page_cache_maximum_age', 0);
+  $page_cache_maximum_age = config_get('system.core', 'page_cache_maximum_age');
   if ($max_age == CACHE_MAX_AGE_PERMANENT || $max_age > $page_cache_maximum_age) {
     $max_age = $page_cache_maximum_age;
   }

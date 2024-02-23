@@ -2,20 +2,20 @@
 
 /**
  * @file
- * TaggableDrupalCacheInterface functions for the D8 caching system backport.
+ * TaggableBackdropCacheInterface functions for the D8 caching system backport.
  */
 
-require_once DRUPAL_ROOT . '/includes/cache.inc';
+require_once BACKDROP_ROOT . '/core/includes/cache.inc';
 
 /* -----------------------------------------------------------------------
  * Public API
  */
 
-if (!interface_exists('TaggableDrupalCacheInterface', FALSE)) {
+if (!interface_exists('TaggableBackdropCacheInterface', FALSE)) {
   /**
-   * Defines an interface for a Drupal cache backend, which supports tags.
+   * Defines an interface for a Backdrop cache backend, which supports tags.
    */
-  interface TaggableDrupalCacheInterface extends DrupalCacheInterface {
+  interface TaggableBackdropCacheInterface extends BackdropCacheInterface {
 
     /**
      * Stores data in the persistent cache.

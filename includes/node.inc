@@ -14,7 +14,7 @@
  */
 function d8cache_node_update_index($node) {
   // Invalidate the node search index.
-  drupal_invalidate_cache_tags(array('search_index:node'));
+  backdrop_invalidate_cache_tags(array('search_index:node'));
 
   return '';
 }

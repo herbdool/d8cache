@@ -10,7 +10,7 @@
  */
 function d8cache_process_username(&$variables) {
   if ($variables['uid'] > 0) {
-    drupal_add_cache_tags(array('user:' . $variables['uid']));
+    backdrop_add_cache_tags(array('user:' . $variables['uid']));
   }
 }
 
@@ -25,5 +25,5 @@ function d8cache_preprocess_search_results(&$variables) {
     $tags[] = 'search_index:' . $variables['module'];
   }
 
-  drupal_add_cache_tags($tags);
+  backdrop_add_cache_tags($tags);
 }

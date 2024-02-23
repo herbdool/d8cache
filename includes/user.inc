@@ -13,14 +13,14 @@
  * Implements hook_user_insert().
  */
 function d8cache_user_insert(&$edit, $account, $category) {
-  drupal_invalidate_cache_tags(array('search_index:user'));
+  backdrop_invalidate_cache_tags(array('search_index:user'));
 }
 
 /**
  * Implements hook_user_update().
  */
 function d8cache_user_update(&$edit, $account, $category) {
-  drupal_invalidate_cache_tags(array('search_index:user'));
+  backdrop_invalidate_cache_tags(array('search_index:user'));
 }
 
 /**
@@ -31,14 +31,14 @@ function d8cache_user_cancel($edit, $account, $method) {
   $tags[] = 'user:' . $account->uid;
   $tags[] = 'user_list';
   $tags[] = 'search_index:user';
-  drupal_invalidate_cache_tags($tags);
+  backdrop_invalidate_cache_tags($tags);
 }
 
 /**
  * Implements hook_user_delete().
  */
 function d8cache_user_delete($account) {
-  drupal_invalidate_cache_tags(array('search_index:user'));
+  backdrop_invalidate_cache_tags(array('search_index:user'));
 }
 
 /* -----------------------------------------------------------------------

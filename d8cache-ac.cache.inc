@@ -9,9 +9,9 @@ require_once __DIR__ . '/d8cache.cache.inc';
 require_once __DIR__ . '/includes/core-attachments-collector.inc';
 
 /**
- * Adds reset() and some properties to DrupalAttachmentsCollector().
+ * Adds reset() and some properties to BackdropAttachmentsCollector().
  */
-class D8CacheDrupalAttachmentsCollector extends DrupalAttachmentsCollector {
+class D8CacheBackdropAttachmentsCollector extends BackdropAttachmentsCollector {
 
   /**
    * A count for how many cache IDs this collector should be used.
@@ -23,7 +23,7 @@ class D8CacheDrupalAttachmentsCollector extends DrupalAttachmentsCollector {
   /**
    * The stored previous collector.
    *
-   * @var \DrupalAttachmentsCollector
+   * @var \BackdropAttachmentsCollector
    */
   public $previousCollector = NULL;
 
@@ -53,7 +53,7 @@ class D8CacheAttachmentsCollector extends D8Cache {
   /**
    * The currently active attachments collector for this bin.
    *
-   * @var array
+   * @var D8CacheBackdropAttachmentsCollector
    */
   protected $currentAttachmentsCollector;
 
@@ -73,7 +73,7 @@ class D8CacheAttachmentsCollector extends D8Cache {
    */
   public function __construct($bin) {
     $this->isValid = TRUE;
-    if (!function_exists('drupal_process_attached')) {
+    if (!function_exists('backdrop_process_attached')) {
       // Something is trying to use us during early bootstrap.
       // Fall back to baseline D8Cache behavior for safety.
       $this->isValid = FALSE;
@@ -81,7 +81,7 @@ class D8CacheAttachmentsCollector extends D8Cache {
       // Additionally, prevent the request from saving to cache, and warn
       // loudly that we are in an unsupported configuration.
       $t = get_t();
-      drupal_set_message($t('D8CacheAttachmentsCollector is not designed for early page cache! Please switch cache_page to D8Cache in settings.php!'), 'error');
+      backdrop_set_message($t('D8CacheAttachmentsCollector is not designed for early page cache! Please switch cache_page to D8Cache in settings.php!'), 'error');
     }
     parent::__construct($bin);
   }
@@ -100,7 +100,7 @@ class D8CacheAttachmentsCollector extends D8Cache {
     // Unpack the cached data and process attachments.
     foreach ($cache as $cid => $item) {
       if (is_array($item->data) && isset($item->data['#d8cache_data'])) {
-        drupal_process_attached($item->data);
+        backdrop_process_attached($item->data);
         $cache[$cid]->data = $item->data['#d8cache_data'];
       }
     }
@@ -111,7 +111,7 @@ class D8CacheAttachmentsCollector extends D8Cache {
     }
 
     // We have multiple cids, so we need to reset after each cache set.
-    $attachments_collector = new D8CacheDrupalAttachmentsCollector();
+    $attachments_collector = new D8CacheBackdropAttachmentsCollector();
     $attachments_collector->count = count($cids);
     $attachments_collector->previousCollector = $this->currentAttachmentsCollector;
     $this->currentAttachmentsCollector = $attachments_collector;

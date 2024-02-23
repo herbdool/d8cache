@@ -1,11 +1,10 @@
-# Drupal 8 Cache Backport (D8Cache)
+# Cache Tags (D8Cache)
 
-This guide contains information on the user-configurable parts of D8Cache.
+This guide contains information on the user-configurable parts of D8Cache, a Drupal port.
 Fully utilizing D8Cache may require some site customization. For clarity,
 developer-centric documentation has been split out to `README.developer.md`.
 
-Introduction - How does tag based caching work?
------------------------------------------------
+## Introduction - How does tag based caching work?
 
 With Cache Tags it is possible to tag pages or other cache entries like 'blocks'
 by using so-called cache tag strings. (e.g. `node:1`).
@@ -15,28 +14,25 @@ Then when the `node:1` object is updated the tag is invalidated.
 The D8Cache module already supports cache tags for entities, menus, blocks and
 search out of the box.
 
-Getting started
----------------
+## Getting started
 
 To get started you download the module and enable it.
 
-Then you need to configure settings.php:
+Then you need to configure `settings.php`:
 
-```
-$conf['cache_backends'][] = 'sites/all/modules/d8cache/d8cache-ac.cache.inc';
-$conf['cache_class_cache_views_data'] = 'D8CacheAttachmentsCollector';
-$conf['cache_class_cache_block'] = 'D8CacheAttachmentsCollector';
-$conf['cache_class_cache_page'] = 'D8Cache';
+```php
+$settings['cache_backends'][] = 'modules/d8cache/d8cache-ac.cache.inc';
+$settings['cache_class_cache_views_data'] = 'D8CacheAttachmentsCollector';
+$settings['cache_class_cache_page'] = 'D8Cache';
 ```
 
-In this example both `cache_views_data` and `cache_block` are taken over by a
+In this example `cache_views_data` is taken over by a
 `D8CacheAttachmentsCollector` class, which will ensure that render array
 `#attached` properties are tracked properly when performing render caching.
 
-Performance and Reliability notes
----------------------------------
+## Performance and Reliability notes
 
-- Possible deadlock when saving content
+### Possible deadlock when saving content
 
 If you are storing cache tags in the database, be aware there is a
 [D8 core issue](https://www.drupal.org/project/drupal/issues/2966607)
@@ -52,40 +48,43 @@ version has been finalized.
 D8Cache will automatically detect when this support is available, and if so,
 will defer tag invalidation until after the current transaction has completed.
 
-- Drupal core patch may be needed for accurate render caching
+### Backdrop core patch may be needed for accurate render caching
 
 If you are having trouble with missing javascript / CSS when doing render
 caching, try running this the core patch from
 [here](https://www.drupal.org/project/drupal/issues/2820757) (#2820757.)
 
+And finally, a [patch](https://www.drupal.org/project/drupal/issues/2754245)
+for backporting render context and `#cache` properties.
+
 See that issue for specifics on when this may be necessary.
 
-Frequently asked questions - Users
-----------------------------------
+## Frequently asked questions - Users
+
 For answers to more code-related questions, please see the corresponding FAQ in `README.developer.md`.
 
 ### How can I specify a class to use as backend for D8Cache if my bin uses a different backend from the default?
 
 Before:
 
-```
-$conf['cache_default_class'] = 'Redis_Cache';
-$conf['cache_class_cache_page'] = 'DrupalDatabaseCache';
+```php
+$settings['cache_default_class'] = 'Redis_Cache';
+$settings['cache_class_cache_page'] = 'BackdropDatabaseCache';
 ```
 
 After:
 
-```
-$conf['cache_default_class'] = 'Redis_Cache';
-$conf['cache_class_cache_page'] = 'D8Cache';
-$conf['d8cache_cache_class_cache_page'] = 'DrupalDatabaseCache';
+```php
+$settings['cache_default_class'] = 'Redis_Cache';
+$settings['cache_class_cache_page'] = 'D8Cache';
+$settings['d8cache_cache_class_cache_page'] = 'BackdropDatabaseCache';
 ```
 
-So the only thing needed is to prefix the usual 'cache_class_*' variable with
-'d8cache_'.
+So the only thing needed is to prefix the usual `cache_class_*` variable with
+`d8cache_`.
 
 It is also possible to specify another default backend for D8Cache with
-'d8cache_cache_default_class', which can be useful to add another decorator just
+`d8cache_cache_default_class`, which can be useful to add another decorator just
 to the cache bins using the D8Cache backends.
 
 Note that D8Cache is generally only useful for cache bins that store rendered
@@ -95,11 +94,12 @@ slightly more efficient to use a regular cache backend class for most bins.
 ### How I store cache tags in a different backend than the database?
 
 Add this to your settings.php:
-```
-$conf['d8cache_use_cache_tags_cache'] = TRUE;
+
+```php
+$settings['d8cache_use_cache_tags_cache'] = TRUE;
 ```
 
-This will make D8Cache look in the 'cache_d8cache_cache_tags' bin for the cache
+This will make D8Cache look in the `cache_d8cache_cache_tags` bin for the cache
 tags, and only check the database for any tags that it could not find in this
 secondary cache.
 
@@ -110,25 +110,29 @@ functions. Your module should also implement `hook_cache_tags_invalidate()`.
 
 ### How do I serve the page cache without boostrapping the database?
 
-Add to settings.php:
-```
-$conf['d8cache_use_cache_tags_cache'] = TRUE;
+Add to `settings.php`:
+
+```php
+$settings['d8cache_use_cache_tags_cache'] = TRUE;
 // D8Cache will automatically bootstrap the database if needed.
-$conf['page_cache_without_database'] = TRUE;
+// @todo does not exist in Backdrop:
+//$settings['page_cache_without_database'] = TRUE;
+
 // Unless your boot modules were specifically designed to work without the
 // database, you must disable page cache hooks. (hook_boot/hook_exit)
-$conf['page_cache_invoke_hooks'] = FALSE;
+$settings['page_cache_invoke_hooks'] = FALSE;
 // Use D8Cache for cache_page to handle tag invalidation properly.
-$conf['cache_class_cache_page'] = 'D8Cache';
-// cache_bootstrap is needed during Drupal startup, and must use a cache
+$settings['cache_class_cache_page'] = 'D8Cache';
+// cache_bootstrap is needed during Backdrop startup, and must use a cache
 // backend directly.
-$conf['cache_class_cache_bootstrap'] = 'MemCacheDrupal';
+$settings['cache_class_cache_bootstrap'] = 'MemCacheBackdrop';
 // cache_d8cache_cache_tags must also use a cache backend directly.
-$conf['cache_class_cache_d8cache_cache_tags'] = 'MemCacheDrupal';
+$settings['cache_class_cache_d8cache_cache_tags'] = 'MemCacheBackdrop';
 // This is the backing store for cache_page. Invalidation will be handled
 // by D8Cache as configured above.
-$conf['d8cache_cache_class_cache_page'] = 'MemCacheDrupal';
+$settings['d8cache_cache_class_cache_page'] = 'MemCacheBackdrop';
 ```
+
 The database will still be bootstrapped if any of the cache tags are missing
 from `cache_d8cache_cache_tags`. This is necessary to ensure that invalidations
 will be honored properly even when some of the cache tags have been expired from
@@ -147,9 +151,9 @@ system, and are being remotely invalidated correctly.
   - See `README.developer.md` for more information.
   - Ensure the performance settings at `?q=admin/config/development/performance`
    are set as appropriate for your provider. Example settings:
-     - Cache pages for anonymous users: yes
-     - Cache blocks: yes
-     - Expiration of cached pages: `15 min` (or personal preference)
+    - Cache pages for anonymous users: yes
+    - Cache blocks: yes
+    - Expiration of cached pages: `15 min` (or personal preference)
 
 ### I am using an external caching system / proxy / CDN with key-based invalidation and I would like to disable the page cache entirely. How do I do this with D8Cache?
 
@@ -180,20 +184,23 @@ work.
 for this mode, as content will no longer be expiring naturally. The
 performance setting 'Expiration of cached pages' will define what the *browser*
 sees, not the CDN caching policy.
+
 - Add to `settings.php`:
-  ```
-  if (!class_exists('DrupalFakeCache')) {
-  // Load DrupalFakeCache to allow enabling caching but not storing locally.
-  $conf['cache_backends'][] = 'includes/cache-install.inc';
+
+  ```php
+  if (!class_exists('BackdropFakeCache')) {
+  // Load BackdropFakeCache to allow enabling caching but not storing locally.
+  $settings['cache_backends'][] = 'includes/cache-install.inc';
   }
   // Disable the cache_page backing store by using the fake cache backend.
   // Actual invalidation with the external cache is handled through API calls.
-  $conf['cache_class_cache_page'] = 'DrupalFakeCache';
+  $settings['cache_class_cache_page'] = 'BackdropFakeCache';
 
   // Collect attachments for blocks and views data.
-  $conf['cache_class_cache_block'] = 'D8CacheAttachmentsCollector';
-  $conf['cache_class_cache_views_data'] = 'D8CacheAttachmentsCollector';
+  $settings['cache_class_cache_block'] = 'D8CacheAttachmentsCollector';
+  $settings['cache_class_cache_views_data'] = 'D8CacheAttachmentsCollector';
   ```
+
 - Configure your service provider to enforce a large minimum TTL on cache
 objects.
 - Verify that the `Cache-Control: max-age` and/or `Expires` header(s) delivered
@@ -211,9 +218,13 @@ something and cause stale content to show up on pages.
 cache has not caused performance regressions.
 
 ### Every content change expires all pages. How can I avoid that?
+
 ### How can I emit a custom header with cache tags for my special Varnish configuration?
+
 ### How can I add a custom cache tag?
+
 ### How can I avoid the block and page cache being invalidated when content changes?
+
 ### When does max-age "bubble up" to containing cache items and when does it not?
 
 See the corresponding question in README.developer.md.
@@ -225,11 +236,27 @@ The official documentation for Drupal 8 is the best resource right now:
 * https://www.drupal.org/docs/8/api/cache-api/cache-tags
 * https://www.drupal.org/docs/8/api/cache-api/cache-max-age
 
-The backported API for Drupal 7 should be as similar as possible. See also
+The backported API for Backdrop CMS should be as similar as possible. See also
 the section "Drupal 8 API comparison" in `README.developer.md`.
 
 ### My question is not answered here, what should I do?
 
 Please open an issue here:
 
-  https://www.drupal.org/project/issues/d8cache
+  https://github.com/project/d8cache/issues/
+
+## Current Maintainers
+
+- [Herb v/d Dool](https://github.com/herbdool)
+
+## Credits
+
+Ported to Backdrop by [Herb v/d Dool](https://github.com/herbdool).
+
+Maintained for Drupal by [bdragon](https://www.drupal.org/u/bdragon),
+[Fabianx](https://www.drupal.org/u/fabianx).
+
+## License
+
+This project is GPL v2 software. See the LICENSE.txt file in this directory for
+complete text.

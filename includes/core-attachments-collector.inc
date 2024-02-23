@@ -9,7 +9,7 @@
  * Public API
  */
 
-if (!function_exists('drupal_add_attachment')) {
+if (!function_exists('backdrop_add_attachment')) {
 
   /**
    * Adds attachments in a way that they can be collected for render caching.
@@ -18,51 +18,51 @@ if (!function_exists('drupal_add_attachment')) {
    * local scope to store them into #attached for render caching.
    * If you want to call this from a legacy function that both works when
    * called via #attached and when called directly, ensure to check
-   * drupal_has_attachments_collector() first as not doing so can lead to
+   * backdrop_has_attachments_collector() first as not doing so can lead to
    * an endless recursion.
-   * This is essentially a short wrapper around drupal_process_attached().
+   * This is essentially a short wrapper around backdrop_process_attached().
    *
    * @param string $key
    *   The key within #attached, like 'js', 'css' to add to.
    * @param mixed $value
    *   The value to store as attachment.
    * @param bool $dependency_check
-   *   This parameter is passed on to drupal_process_attached() and can be used
-   *   for checking dependency chains for drupal_add_library().
+   *   This parameter is passed on to backdrop_process_attached() and can be used
+   *   for checking dependency chains for backdrop_add_library().
    *
    * @return bool
    *   FALSE if there were any missing library dependencies; TRUE if all library
    *   dependencies were met.
    *
-   * @see drupal_process_attached()
+   * @see backdrop_process_attached()
    */
-  function drupal_add_attachment($key, $value, $dependency_check = FALSE) {
+  function backdrop_add_attachment($key, $value, $dependency_check = FALSE) {
     $elements = array();
     $elements['#attached'] = array();
     $elements['#attached'][$key][] = $value;
-    return _drupal_process_attached_supplement($elements, JS_DEFAULT, $dependency_check);
+    return _backdrop_process_attached_supplement($elements, JS_DEFAULT, $dependency_check);
   }
 
 }
 
-if (!function_exists('drupal_has_attachments_collector')) {
+if (!function_exists('backdrop_has_attachments_collector')) {
 
   /**
    * Returns whether there is an active attachments collector.
    *
    * @return bool
-   *   TRUE if Drupal is collecting attachments, FALSE otherwise.
+   *   TRUE if Backdrop is collecting attachments, FALSE otherwise.
    */
-  function drupal_has_attachments_collector() {
-    static $drupal_static_fast;
+  function backdrop_has_attachments_collector() {
+    static $backdrop_static_fast;
 
-    if (!isset($drupal_static_fast)) {
-      $drupal_static_fast = array();
-      $drupal_static_fast['render_listeners'] = &drupal_static('drupal_render:render_listeners', array());
-      $drupal_static_fast['collect_attachments'] = &drupal_static('drupal_process_attached:collect_attachments', TRUE);
+    if (!isset($backdrop_static_fast)) {
+      $backdrop_static_fast = array();
+      $backdrop_static_fast['render_listeners'] = &backdrop_static('backdrop_render:render_listeners', array());
+      $backdrop_static_fast['collect_attachments'] = &backdrop_static('backdrop_process_attached:collect_attachments', TRUE);
     }
 
-    if ($drupal_static_fast['collect_attachments'] !== FALSE && !empty($drupal_static_fast['render_listeners'])) {
+    if ($backdrop_static_fast['collect_attachments'] !== FALSE && !empty($backdrop_static_fast['render_listeners'])) {
       return TRUE;
     }
 
@@ -71,24 +71,24 @@ if (!function_exists('drupal_has_attachments_collector')) {
 
 }
 
-if (!class_exists('DrupalAttachmentsCollector', FALSE)) {
+if (!class_exists('BackdropAttachmentsCollector', FALSE)) {
 
   /**
    * Provices a way to collect attachments added during the rendering process.
    *
-   * Attachments added via drupal_add_js() / drupal_add_css() or that are early
+   * Attachments added via backdrop_add_js() / backdrop_add_css() or that are early
    * rendered as part of a template have been lost in the past and that made
    * caching of anything that is not the whole page difficult.
    * The AttachmentsCollector solves this problem by routing all adding of
-   * attachments through drupal_process_attached(), which is then storing the
+   * attachments through backdrop_process_attached(), which is then storing the
    * attachments in the registered storage of listeners - if any.
    * To create an attachments collector the following code shows an example:
    *
    * @code
    * // Register a listener.
-   * $attachments_collector = new DrupalAttachmentsCollector();
+   * $attachments_collector = new BackdropAttachmentsCollector();
    * // Render the render array.
-   * $rendered = drupal_render($build);
+   * $rendered = backdrop_render($build);
    * // Store the attachments.
    * $attachments = $attachments_collector->getAttachments();
    * // Unregister the listener.
@@ -98,7 +98,7 @@ if (!class_exists('DrupalAttachmentsCollector', FALSE)) {
    * $build_to_cache['#attached'] = $attachments;
    * @endcode
    */
-  class DrupalAttachmentsCollector {
+  class BackdropAttachmentsCollector {
 
     /**
      * The collected attachments.
@@ -108,20 +108,20 @@ if (!class_exists('DrupalAttachmentsCollector', FALSE)) {
     protected $attachments = array();
 
     /**
-     * Constructs a DrupalAttachmentsCollector object.
+     * Constructs a BackdropAttachmentsCollector object.
      *
      * This will register a listener that listens for attachments created via:
-     * - drupal_add_js()
-     * - drupal_add_css()
-     * - drupal_add_library()
-     * - drupal_add_html_head()
-     * - drupal_add_http_header()
-     * and everything that is processed with drupal_process_attached().
+     * - backdrop_add_js()
+     * - backdrop_add_css()
+     * - backdrop_add_library()
+     * - backdrop_add_html_head()
+     * - backdrop_add_http_header()
+     * and everything that is processed with backdrop_process_attached().
      */
     public function __construct() {
       $key = spl_object_hash($this);
 
-      $render_listeners = &drupal_static('drupal_render:render_listeners', array());
+      $render_listeners = &backdrop_static('backdrop_render:render_listeners', array());
       $render_listeners[$key] = array();
 
       $this->attachments = &$render_listeners[$key];
@@ -154,14 +154,14 @@ if (!class_exists('DrupalAttachmentsCollector', FALSE)) {
     }
 
     /**
-     * Destructs the DrupalAttachmentsCollector object.
+     * Destructs the BackdropAttachmentsCollector object.
      *
      * This will unregister the listener that listens for attachments.
      */
     public function __destruct() {
       $key = spl_object_hash($this);
 
-      $render_listeners = &drupal_static('drupal_render:render_listeners', array());
+      $render_listeners = &backdrop_static('backdrop_render:render_listeners', array());
       unset($render_listeners[$key]);
     }
 
@@ -184,18 +184,18 @@ if (!class_exists('DrupalAttachmentsCollector', FALSE)) {
  */
 
 /**
- * Overrides drupal_process_attached().
+ * Overrides backdrop_process_attached().
  */
-function _drupal_process_attached_supplement($elements, $group = JS_DEFAULT, $dependency_check = FALSE, $every_page = NULL) {
-  static $drupal_static_fast;
+function _backdrop_process_attached_supplement($elements, $group = JS_DEFAULT, $dependency_check = FALSE, $every_page = NULL) {
+  static $backdrop_static_fast;
 
-  if (!isset($drupal_static_fast)) {
-    $drupal_static_fast = array();
-    $drupal_static_fast['render_listeners'] = &drupal_static('drupal_render:render_listeners', array());
-    $drupal_static_fast['collect_attachments'] = &drupal_static('drupal_process_attached:collect_attachments', TRUE);
+  if (!isset($backdrop_static_fast)) {
+    $backdrop_static_fast = array();
+    $backdrop_static_fast['render_listeners'] = &backdrop_static('backdrop_render:render_listeners', array());
+    $backdrop_static_fast['collect_attachments'] = &backdrop_static('backdrop_process_attached:collect_attachments', TRUE);
   }
-  $render_listeners = &$drupal_static_fast['render_listeners'];
-  $collect_attachments = &$drupal_static_fast['collect_attachments'];
+  $render_listeners = &$backdrop_static_fast['render_listeners'];
+  $collect_attachments = &$backdrop_static_fast['collect_attachments'];
 
   // If we are collecting attachments and have at least one listener in the
   // active render listeners, then put all attachments from $elements into the

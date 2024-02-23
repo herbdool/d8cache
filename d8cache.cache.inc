@@ -5,16 +5,16 @@
  * D8Cache backend.
  */
 
-require_once DRUPAL_ROOT . '/includes/cache.inc';
+require_once BACKDROP_ROOT . '/core/includes/cache.inc';
 require_once __DIR__ . '/includes/core.inc';
 require_once __DIR__ . '/includes/core-taggable-dci.inc';
 
 /**
- * Defines a Drupal 8 cacheable metadata aware cache backend.
+ * Defines a Backdrop cacheable metadata aware cache backend.
  *
  * @ingroup cache
  */
-class D8Cache implements TaggableDrupalCacheInterface {
+class D8Cache implements TaggableBackdropCacheInterface {
 
   /**
    * The cache bin.
@@ -26,7 +26,7 @@ class D8Cache implements TaggableDrupalCacheInterface {
   /**
    * The cache backend.
    *
-   * @var \DrupalCacheInterface
+   * @var \BackdropCacheInterface
    */
   protected $backend;
 
@@ -44,22 +44,22 @@ class D8Cache implements TaggableDrupalCacheInterface {
    *   The cache bin for which the object is created.
    */
   public function __construct($bin) {
-    global $conf;
+    global $settings;
 
     $this->bin = $bin;
 
-    $class = variable_get('d8cache_cache_class_' . $bin);
+    $class = settings_get('d8cache_cache_class_' . $bin);
     if (!isset($class)) {
-      $class = variable_get('d8cache_cache_default_class');
+      $class = settings_get('d8cache_cache_default_class');
     }
     if (!isset($class)) {
-      $class = variable_get('cache_default_class', 'DrupalDatabaseCache');
+      $class = settings_get('cache_default_class', 'BackdropDatabaseCache');
     }
 
     $this->backend = new $class($bin);
     $this->configuration = array();
 
-    $configuration = variable_get('d8cache_cache_options', array());
+    $configuration = settings_get('d8cache_cache_options', array());
     if (isset($configuration[$bin])) {
       $this->configuration = $configuration[$bin];
     }
@@ -138,16 +138,16 @@ class D8Cache implements TaggableDrupalCacheInterface {
     }
     // Allow to set global tags per bin.
     if (isset($this->configuration['tags'])) {
-      $tags = drupal_merge_cache_tags($tags, $this->configuration['tags']);
+      $tags = backdrop_merge_cache_tags($tags, $this->configuration['tags']);
     }
 
     // Special case cache_page.
     if ($this->bin == 'cache_page') {
-      $page_cache_tags = &drupal_static('d8cache_emit_cache_tags', array());
-      $page_cache_max_age = &drupal_static('d8cache_emit_cache_max_age', CACHE_MAX_AGE_PERMANENT);
+      $page_cache_tags = &backdrop_static('d8cache_emit_cache_tags', array());
+      $page_cache_max_age = &backdrop_static('d8cache_emit_cache_max_age', CACHE_MAX_AGE_PERMANENT);
 
       if (!empty($page_cache_tags)) {
-        $tags = drupal_merge_cache_tags($tags, $page_cache_tags);
+        $tags = backdrop_merge_cache_tags($tags, $page_cache_tags);
       }
 
       $expire = $this->mergeExpireWithMaxAge($expire, $page_cache_max_age);
@@ -156,19 +156,19 @@ class D8Cache implements TaggableDrupalCacheInterface {
     // Render arrays.
     if (is_array($data)
         && isset($data['#attached'])
-        && (isset($data['#attached']['drupal_add_cache_tags']) || isset($data['#attached']['drupal_set_cache_max_age']))) {
-      $cacheable_metadata = drupal_get_cacheable_metadata_from_render_array($data);
+        && (isset($data['#attached']['backdrop_add_cache_tags']) || isset($data['#attached']['backdrop_set_cache_max_age']))) {
+      $cacheable_metadata = backdrop_get_cacheable_metadata_from_render_array($data);
 
       if (!empty($cacheable_metadata['tags'])) {
-        $tags = drupal_merge_cache_tags($tags, $cacheable_metadata['tags']);
+        $tags = backdrop_merge_cache_tags($tags, $cacheable_metadata['tags']);
         // Collapse the attached tags into a single attachment before saving.
-        $data['#attached']['drupal_add_cache_tags'] = array(array(0 => $cacheable_metadata['tags']));
+        $data['#attached']['backdrop_add_cache_tags'] = array(array(0 => $cacheable_metadata['tags']));
       }
 
       $expire = $this->mergeExpireWithMaxAge($expire, $cacheable_metadata['max-age']);
       if ($cacheable_metadata['max-age'] != CACHE_MAX_AGE_PERMANENT) {
         // Collapse the attached max-age into a single attachment before saving.
-        $data['#attached']['drupal_set_cache_max_age'] = array(array(0 => $cacheable_metadata['max-age']));
+        $data['#attached']['backdrop_set_cache_max_age'] = array(array(0 => $cacheable_metadata['max-age']));
       }
     }
 
@@ -179,7 +179,7 @@ class D8Cache implements TaggableDrupalCacheInterface {
     }
 
     // Does the backend support tags natively?
-    if ($this->backend instanceof TaggableDrupalCacheInterface) {
+    if ($this->backend instanceof TaggableBackdropCacheInterface) {
       $this->backend->set($cid, $data, $expire, $tags);
     }
     else {
@@ -199,8 +199,36 @@ class D8Cache implements TaggableDrupalCacheInterface {
   /**
    * {@inheritdoc}
    */
-  public function clear($cid = NULL, $wildcard = FALSE) {
-    $this->backend->clear($cid, $wildcard);
+  public function delete($cid = NULL) {
+    $this->backend->delete($cid);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function deleteMultiple(array $cids) {
+    $this->backend->deleteMultiple($cids);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  function deletePrefix($prefix) {
+    $this->backend->deletePrefix($prefix);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  function flush() {
+    $this->backend->flush();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  function garbageCollection() {
+    $this->backend->garbageCollection();
   }
 
   /**
@@ -305,7 +333,7 @@ class D8Cache implements TaggableDrupalCacheInterface {
     static $installStateKnown = FALSE;
     static $isInstalled = TRUE;
 
-    if ($this->bin == 'cache_page' && drupal_get_bootstrap_phase() < DRUPAL_BOOTSTRAP_FULL) {
+    if ($this->bin == 'cache_page' && backdrop_get_bootstrap_phase() < BACKDROP_BOOTSTRAP_FULL) {
       // Ensure the module file is loaded, in case we are serving a cached page.
       require_once __DIR__ . '/d8cache.module';
       // When we haven't fully bootstrapped yet, we can't actually verify that

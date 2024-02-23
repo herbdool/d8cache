@@ -10,7 +10,7 @@
  */
 function d8cache_views_pre_render(&$view) {
   $tags = _d8cache_views_get_cache_tags($view);
-  drupal_add_cache_tags($tags);
+  backdrop_add_cache_tags($tags);
 }
 
 /* -----------------------------------------------------------------------
