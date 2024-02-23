@@ -227,7 +227,7 @@ Varnish as stated already above).
 First of all you need to depend on 'd8cache' and then you should use:
 
 ```php
-  $cache = d8cache_cache_get_object('cache_mymodule');
+  $cache = cache_get('cache_mymodule');
   $cache->set($cid, $data, $expire, $tags);
 ```
 

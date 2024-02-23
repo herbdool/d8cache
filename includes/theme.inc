@@ -6,9 +6,9 @@
  */
 
 /**
- * Implements hook_process_username().
+ * Implements hook_preprocess_username().
  */
-function d8cache_process_username(&$variables) {
+function d8cache_preprocess_username(&$variables) {
   if ($variables['uid'] > 0) {
     backdrop_add_cache_tags(array('user:' . $variables['uid']));
   }

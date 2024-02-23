@@ -9,11 +9,9 @@
 require_once __DIR__ . '/includes/core.inc';
 require_once __DIR__ . '/includes/core-attachments-collector.inc';
 
-// @todo no block caching in core anymore.
-// require_once __DIR__ . '/includes/block.inc';
-
 require_once __DIR__ . '/includes/comment.inc';
 require_once __DIR__ . '/includes/entity.inc';
+require_once __DIR__ . '/includes/layout.inc';
 require_once __DIR__ . '/includes/menu.inc';
 require_once __DIR__ . '/includes/node.inc';
 require_once __DIR__ . '/includes/theme.inc';
@@ -46,11 +44,11 @@ function d8cache_autoload_info() {
 }
 
 /**
- * Implements hook_process_html().
+ * Implements hook_preprocess_page().
  *
  * @todo replace!
  */
-function d8cache_process_html(&$variables) {
+function d8cache_preprocess_page(&$variables) {
   backdrop_emit_cache_tags();
   backdrop_emit_cache_max_age();
 }
@@ -286,19 +284,6 @@ function d8cache_cache_tags_get_current_checksum(array $tags) {
  */
 function d8cache_cache_tags_is_valid($checksum, array $tags) {
   return $checksum == _d8cache_cache_tags_calculate_checksum($tags);
-}
-
-/**
- * Wraps the internal Backdrop API with an official API.
- *
- * @param string $bin
- *   The bin to get a cache object for.
- *
- * @return BackdropCacheInterface
- *   The BackdropCacheInterface object for the selected bin.
- */
-function d8cache_cache_get_object($bin) {
-  return cache_get($bin);
 }
 
 /* -----------------------------------------------------------------------
